@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Extract Source Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Initialize .NET SDK 8.0
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
           dotnet-version: '8.0.x'
 
@@ -29,4 +29,22 @@ jobs:
 
       - name: Execute Unit Tests
         run: dotnet test .\unit-testing-using-dotnet-test.sln --configuration Release --no-build --verbosity normal
+        shell: powershell
+
+  package-and-release:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: [self-hosted, windows, ltvm10]
+
+    steps:
+      - name: Extract Source Code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Initialize .NET SDK 8.0
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Create Production NuGet/App Package
+        run: dotnet pack --configuration Release --output .\artifacts
         shell: powershell
