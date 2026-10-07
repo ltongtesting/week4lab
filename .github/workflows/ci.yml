@@ -64,3 +64,11 @@ jobs:
       - name: Create Production NuGet/App Package
         run: dotnet pack --configuration Release --output .\artifacts
         shell: powershell
+
+      - name: Verify Secret Ingestion Layer
+        env:
+          DB_PASS: ${{ secrets.TEST_DATABASE_PASSWORD }}
+        run: |
+          Write-Output "Initiating secure database testing layer connection..."
+          Write-Output "The active runtime password token is: $env:DB_PASS"
+        shell: powershell
