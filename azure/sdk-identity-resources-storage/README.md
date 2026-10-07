@@ -2,8 +2,8 @@
 languages:
 - csharp
 products:
-- dotnet-core
-- azure
+- dotnet
+- azure-sdks
 page_type: sample
 name: "Azure Identity, Resource Management, and Storage sample"
 urlFragment: "azure-identity-resource-management-storage"
@@ -22,7 +22,7 @@ This sample console application accomplishes the following tasks using the Azure
 * Deletes the resource group and all of its contents.
 
 > [!NOTE]
-> This sample uses preview packages for *Azure.ResourceManager.Resource* and *Azure.ResourceManagement.Storage*. *Azure.Identity* and *Azure.Storage.Blobs* are generally available.
+> This sample uses preview packages for *Azure.ResourceManagement.Storage*. *Azure.ResourceManager.Resource*, *Azure.Identity*, and *Azure.Storage.Blobs* are generally available.
 
 ## Prerequisites
 
@@ -35,17 +35,19 @@ Use the [Azure Cloud Shell](https://shell.azure.com) to create and get client se
 1. Create a service principal and configure its access to Azure resources:
 
     ```azurecli
-    az ad sp create-for-rbac -n <your-application-name>
+    az ad sp create-for-rbac -n http://<your-application-name>.<your-organization-domain>
+
+    # Example: az ad sp create-for-rbac -n http://this-sample-app.contoso.com
     ```
 
     Output:
 
     ```json
     {
-        "appId": "generated-app-ID",
-        "displayName": "sample-app-name",
-        "password": "random-password",
-        "tenant": "tenant-ID"
+        "appId": "<generated-app-ID>",
+        "displayName": "http://this-sample-app.contoso.com",
+        "password": "<random-password>",
+        "tenant": "<tenant-ID>"
     }
     ```
 
@@ -57,22 +59,22 @@ Use the [Azure Cloud Shell](https://shell.azure.com) to create and get client se
 az role assignment create --role "Contributor" --assignee <appId>
 ```
 
-1. Assign the *Storage Blob Data Contributor* role to service principal. There are two ways to do this:
+1. Assign the *Storage Blob Data Contributor* role to service principal. There are two possible ways to do this (either way is acceptable):
 
-    a. Use the `appId` property from the output in the previous step.
+    * Use the `appId` property from the output in the first step.
 
     ```azurecli
     az role assignment create --role "Storage Blob Data Contributor" --assignee <appId>
     ```
 
-    b. Use the `objectId` of the Service Principal account
+    * Use the `objectId` of the Service Principal account
 
     ```azurecli
     az ad sp show <appid>
     az az role assignment create --role 'Storage Blob Data Contributor' --assignee-object-id <objectid> --assignee-principal-type ServicePrincipal
     ```
 
-    This will allow the service principal to perform blob data operations using Azure.Identity (as opposed to a connection string)
+    This will allow the service principal to perform blob data operations using Azure.Identity (as opposed to a connection string).
 
 1. Use the returned credentials from the first step to set the following environment variables.
 

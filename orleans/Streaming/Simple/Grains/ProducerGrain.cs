@@ -1,7 +1,7 @@
 using Common;
 using GrainInterfaces;
 using Microsoft.Extensions.Logging;
-using Orleans;
+using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Grains;
@@ -11,7 +11,7 @@ public class ProducerGrain : Grain, IProducerGrain
     private readonly ILogger<IProducerGrain> _logger;
 
     private IAsyncStream<int>? _stream;
-    private IDisposable? _timer;
+    private IGrainTimer? _timer;
 
     private int _counter = 0;
 
@@ -26,19 +26,25 @@ public class ProducerGrain : Grain, IProducerGrain
             throw new Exception("This grain is already producing events");
 
         // Get the stream
-        _stream = GetStreamProvider(Constants.StreamProvider)
-            .GetStream<int>(key, ns);
+        var streamId = StreamId.Create(ns, key);
+        _stream = this.GetStreamProvider(Constants.StreamProvider)
+            .GetStream<int>(streamId);
 
-        // Register a timer that produce an event every second
+        // Register a timer that produces an event every second
         var period = TimeSpan.FromSeconds(1);
-        _timer = RegisterTimer(TimerTick, null, period, period);
+        _timer = this.RegisterGrainTimer(TimerTick, new GrainTimerCreationOptions
+        {
+            DueTime = period,
+            Period = period,
+            Interleave = true
+        });
 
         _logger.LogInformation("I will produce a new event every {Period}", period);
 
         return Task.CompletedTask;
     }
 
-    private async Task TimerTick(object _)
+    private async Task TimerTick(CancellationToken cancellationToken)
     {
         var value = _counter++;
         _logger.LogInformation("Sending event {EventNumber}", value);

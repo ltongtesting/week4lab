@@ -1,25 +1,26 @@
-using AdventureGrainInterfaces;
-using Orleans;
+﻿using AdventureGrainInterfaces;
 
 namespace AdventureGrains;
 
-public class MonsterGrain : Grain, IMonsterGrain
+public class MonsterGrain : Grain, IMonsterGrain, IDisposable
 {
     private MonsterInfo _monsterInfo = new();
+    private IGrainTimer? _timer;
     private IRoomGrain? _roomGrain; // Current room
 
-    public override Task OnActivateAsync()
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         _monsterInfo = _monsterInfo with { Id = this.GetPrimaryKeyLong() };
 
-        RegisterTimer(
+        _timer = this.RegisterGrainTimer(
             _ => Move(),
-            null,
             TimeSpan.FromSeconds(150),
             TimeSpan.FromMinutes(150));
 
-        return base.OnActivateAsync();
+        return base.OnActivateAsync(cancellationToken);
     }
+
+    public void Dispose() => _timer?.Dispose();
 
     Task IMonsterGrain.SetInfo(MonsterInfo info)
     {
@@ -61,7 +62,6 @@ public class MonsterGrain : Grain, IMonsterGrain
             _roomGrain = nextRoom;
         }
     }
-
 
     Task<string> IMonsterGrain.Kill(IRoomGrain room)
     {

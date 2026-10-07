@@ -1,6 +1,4 @@
-using Orleans;
-
-namespace AdventureGrainInterfaces;
+﻿namespace AdventureGrainInterfaces;
 
 /// <summary>
 /// A player is, well, there's really no other good name...
@@ -9,10 +7,12 @@ public interface IPlayerGrain : IGrainWithGuidKey
 {
     // Players have names
     Task<string?> Name();
+
     Task SetName(string name);
 
     // Each player is located in exactly one room
     Task SetRoomGrain(IRoomGrain room);
+    
     Task<IRoomGrain> RoomGrain();
 
     // Until Death comes knocking

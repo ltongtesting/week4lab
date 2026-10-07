@@ -1,7 +1,8 @@
 using System.Text.Json;
 using Azure.Messaging.EventHubs;
+using Orleans.Runtime;
 using Orleans.Serialization;
-using Orleans.ServiceBus.Providers;
+using Orleans.Streaming.EventHubs;
 using Orleans.Streams;
 
 namespace Silo;
@@ -9,59 +10,56 @@ namespace Silo;
 // Custom EventHubDataAdapter that serialize event using System.Text.Json
 public class CustomDataAdapter : EventHubDataAdapter
 {
-    public CustomDataAdapter(SerializationManager serializationManager) : base(serializationManager)
+    public CustomDataAdapter(Serializer serializer) : base(serializer)
     {
     }
 
-    public override string GetPartitionKey(Guid streamGuid, string streamNamespace)
-        => streamGuid.ToString();
+    public override string GetPartitionKey(StreamId streamId)
+        => streamId.ToString();
 
-    public override IStreamIdentity GetStreamIdentity(EventData queueMessage)
+    public override StreamId GetStreamIdentity(EventData queueMessage)
     {
         var guid = Guid.Parse(queueMessage.PartitionKey);
         var ns = (string) queueMessage.Properties["StreamNamespace"];
-        return new StreamIdentity(guid, ns);
+        return StreamId.Create(ns, guid);
     }
 
-    public override EventData ToQueueMessage<T>(Guid streamGuid, string streamNamespace, IEnumerable<T> events, StreamSequenceToken token, Dictionary<string, object> requestContext)
+    public override EventData ToQueueMessage<T>(StreamId streamId, IEnumerable<T> events, StreamSequenceToken token, Dictionary<string, object> requestContext)
         => throw new NotSupportedException("This adapter only supports read");
 
     protected override IBatchContainer GetBatchContainer(EventHubMessage eventHubMessage)
         => new CustomBatchContainer(eventHubMessage);
 }
 
-public class CustomBatchContainer : IBatchContainer
+[GenerateSerializer, Immutable]
+public sealed class CustomBatchContainer : IBatchContainer
 {
-    public Guid StreamGuid { get; }
+    [Id(0)]
+    private readonly EventHubMessage _eventHubMessage;
 
-    public string StreamNamespace { get; }
-
+    [Id(1)]
     public StreamSequenceToken SequenceToken { get; }
 
-    private readonly byte[] _payload;
+    public StreamId StreamId => _eventHubMessage.StreamId;
 
     public CustomBatchContainer(EventHubMessage eventHubMessage)
     {
-        StreamGuid = eventHubMessage.StreamIdentity.Guid;
-        StreamNamespace = eventHubMessage.StreamIdentity.Namespace;
-        SequenceToken = new EventHubSequenceTokenV2(eventHubMessage.Offset, eventHubMessage.SequenceNumber, 0);
-        _payload = eventHubMessage.Payload;
+        _eventHubMessage = eventHubMessage;
+        SequenceToken = new EventHubSequenceTokenV2(_eventHubMessage.Offset, _eventHubMessage.SequenceNumber, 0);
     }
 
     public IEnumerable<Tuple<T, StreamSequenceToken>> GetEvents<T>()
     {
         try
         {
-            var evt = JsonSerializer.Deserialize<T>(_payload)!;
+            var evt = JsonSerializer.Deserialize<T>(_eventHubMessage.Payload)!;
             return new[] { Tuple.Create(evt, SequenceToken) };
         }
         catch (Exception)
         {
-            return new List<Tuple<T, StreamSequenceToken>>();
+            return Array.Empty<Tuple<T, StreamSequenceToken>>();
         }
     }
 
     public bool ImportRequestContext() => false;
-
-    public bool ShouldDeliver(IStreamIdentity stream, object filterData, StreamFilterPredicate shouldReceiveFunc) => true;
 }

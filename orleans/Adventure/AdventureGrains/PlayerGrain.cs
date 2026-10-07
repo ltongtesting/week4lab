@@ -1,33 +1,35 @@
-using System.Text;
+﻿using System.Text;
+using System.Threading;
 using AdventureGrainInterfaces;
-using Orleans;
 
 namespace AdventureGrains;
 
 public class PlayerGrain : Grain, IPlayerGrain
 {
+    private readonly List<Thing> _things = []; // Things that the player is carrying
     private IRoomGrain? _roomGrain; // Current room
-    private readonly List<Thing> _things = new(); // Things that the player is carrying
-
     private bool _killed = false;
     private PlayerInfo _myInfo = null!;
 
-    public override Task OnActivateAsync()
+    public override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         _myInfo = new(this.GetPrimaryKey(), "nobody");
-        return base.OnActivateAsync();
+        return base.OnActivateAsync(cancellationToken);
     }
 
     Task<string?> IPlayerGrain.Name() => Task.FromResult(_myInfo?.Name);
 
     Task<IRoomGrain> IPlayerGrain.RoomGrain() => Task.FromResult(_roomGrain!);
 
-
     async Task IPlayerGrain.Die()
     {
         // Drop everything
-        var tasks = _things.Select(Drop).ToList();
-        await Task.WhenAll(tasks);
+        var dropTasks = new List<Task<string?>>();
+        foreach (var thing in _things.ToArray() /* New collection */)
+        {
+            dropTasks.Add(Drop(thing));
+        }
+        await Task.WhenAll(dropTasks);
 
         // Exit the game
         if (_roomGrain is not null && _myInfo is not null)

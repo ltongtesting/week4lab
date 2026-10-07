@@ -1,9 +1,8 @@
-using GPSTracker.Common;
-using Orleans;
+﻿using GPSTracker.Common;
 
 namespace GPSTracker.GrainInterface;
 
 public interface IPushNotifierGrain : IGrainWithIntegerKey
 {
-    Task SendMessage(VelocityMessage message);
+    ValueTask SendMessage(VelocityMessage message);
 }

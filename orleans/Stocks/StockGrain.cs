@@ -1,9 +1,8 @@
-using Orleans;
 using Stocks.Interfaces;
 
 namespace Stocks.Grains;
 
-public class StockGrain : Grain, IStockGrain
+public sealed class StockGrain : Grain, IStockGrain
 {
     // Request api key from here https://www.alphavantage.co/support/#api-key
     private const string ApiKey = "5NVLFTOEC34MVTDE";
@@ -11,35 +10,37 @@ public class StockGrain : Grain, IStockGrain
 
     private string _price = null!;
 
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
-        this.GetPrimaryKey(out var stock);
-        await UpdatePrice(stock);
+        var stock = this.GetPrimaryKeyString();
+        await UpdatePrice(stock, cancellationToken);
 
-        RegisterTimer(
+        this.RegisterGrainTimer(
             UpdatePrice,
             stock,
-            TimeSpan.FromMinutes(2),
-            TimeSpan.FromMinutes(2));
+            new GrainTimerCreationOptions
+            {
+                DueTime = TimeSpan.FromMinutes(2),
+                Period = TimeSpan.FromMinutes(2),
+                Interleave = true
+            });
 
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
-    private async Task UpdatePrice(object stock)
+    private async Task UpdatePrice(string stock, CancellationToken cancellationToken)
     {
-        var priceTask = GetPriceQuote((string)stock);
-
-        // read the results
-        _price = await priceTask;
+        _price = await GetPriceQuote(stock, cancellationToken);
     }
 
-    private async Task<string> GetPriceQuote(string stock)
+    private async Task<string> GetPriceQuote(string stock, CancellationToken cancellationToken)
     {
         using var resp =
             await _httpClient.GetAsync(
-                $"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={stock}&apikey={ApiKey}&datatype=csv");
+                $"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={stock}&apikey={ApiKey}&datatype=csv",
+                cancellationToken);
 
-        return await resp.Content.ReadAsStringAsync();
+        return await resp.Content.ReadAsStringAsync(cancellationToken);
     }
 
     public Task<string> GetPrice() => Task.FromResult(_price);

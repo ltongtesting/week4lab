@@ -1,58 +1,35 @@
-# Building a Hello World console app with NativeAOT
+# Building a Hello World console app with native AOT
 
-NativeAOT is an AOT-optimized .NET Core runtime. This document will guide you through compiling a .NET Core Console application with NativeAOT.
+Native AOT is an [optimized .NET runtime deployment model](https://learn.microsoft.com/dotnet/core/deploying/native-aot/). This document will guide you through compiling a .NET Console application with native AOT.
 
-_Please ensure that [pre-requisites](https://github.com/dotnet/runtime/blob/main/src/coreclr/nativeaot/docs/prerequisites.md) are installed._
+_Please ensure that [pre-requisites](https://learn.microsoft.com/dotnet/core/deploying/native-aot#prerequisites) are installed._
 
-## Create .NET Core Console project
+## Create .NET Console project
 
 Open a new shell/command prompt window and run the following commands.
 
 ```bash
-> dotnet new console -o HelloWorld
+> dotnet new console -o HelloWorld --aot
 > cd HelloWorld
 ```
 
-This will create a simple Hello World console app in `Program.cs` and associated project files.
-
-## Add NativeAOT to your project
-
-To use NativeAOT with your project, you need to add a reference to the ILCompiler NuGet package that contains the NativeAOT ahead of time compiler and runtime.
-For the compiler to work, it first needs to be added to your project.
-
-In your shell/command prompt navigate to the root directory of your project and run the command:
-
-```bash
-> dotnet new nugetconfig
-```
-
-This will add a nuget.config file to your application. Open the file and in the ``<packageSources>`` element under ``<clear/>`` add the following:
-
-```xml
-<add key="dotnet7" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet7/nuget/v3/index.json" />
-<add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
-```
-
-Once you've added the package source, add a reference to the compiler by running the following command:
-
-```bash
-> dotnet add package Microsoft.DotNet.ILCompiler -v 7.0.0-*
-```
+This will create a simple Hello World console app in `Program.cs` and associated project files enabled for publishing as native AOT.
 
 ## Restore and Publish your app
 
 Once the package has been successfully added it's time to compile and publish your app! In the shell/command prompt window, run the following command:
 
 ```bash
-> dotnet publish -r <RID> -c <Configuration>
+> dotnet publish
 ```
 
-where `<Configuration>` is your project configuration (such as Debug or Release) and `<RID>` is the runtime identifier (one of win-x64, linux-x64, osx-x64). For example, if you want to publish a release configuration of your app for a 64-bit version of Windows the command would look like:
+Once completed, you can find the native executable in the root folder of your project under `/bin/<Configuration>/net8.0/<RID>/publish/`. Navigate to `/bin/<Configuration>/net8.0/<RID>/publish/` in your project folder and run the produced native executable.
 
-```bash
-> dotnet publish -r win-x64 -c release
-```
+## Build using a docker container
 
-Once completed, you can find the native executable in the root folder of your project under `/bin/<Configuration>/net6.0/<RID>/publish/`. Navigate to `/bin/<Configuration>/net6.0/<RID>/publish/` in your project folder and run the produced native executable.
+This sample includes Dockerfiles that demonstrate installing NativeAOT build prerequisites and building in a container:
 
-Feel free to modify the sample application and experiment. However, keep in mind some functionality might not yet be supported in NativeAOT. Let us know on the [Issues page](https://github.com/dotnet/runtime/issues).
+- Linux x64: `docker build -t hello . & docker run -t hello`
+- Windows x64: `docker build -t hello -f Dockerfile.windowsservercore-x64 . & docker run -t hello`
+
+More comprehensive containerized sample app built with native AOT can be found in [dotnet-docker repo](https://github.com/dotnet/dotnet-docker/tree/main/samples/releasesapi).

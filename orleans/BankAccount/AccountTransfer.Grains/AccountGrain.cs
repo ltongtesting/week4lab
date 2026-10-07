@@ -1,16 +1,16 @@
-using AccountTransfer.Interfaces;
-using Orleans;
+﻿using AccountTransfer.Interfaces;
 using Orleans.Transactions.Abstractions;
 
 namespace AccountTransfer.Grains;
 
-[Serializable]
-public record class Balance
+[GenerateSerializer]
+public class Balance
 {
-    public uint Value { get; set; } = 1_000;
+    [Id(0)] 
+    public int Value { get; set; } = 1_000;
 }
 
-public class AccountGrain : Grain, IAccountGrain
+public sealed class AccountGrain : Grain, IAccountGrain
 {
     private readonly ITransactionalState<Balance> _balance;
 
@@ -18,11 +18,11 @@ public class AccountGrain : Grain, IAccountGrain
         [TransactionalState("balance")] ITransactionalState<Balance> balance) =>
         _balance = balance ?? throw new ArgumentNullException(nameof(balance));
 
-    public Task Deposit(uint amount) =>
+    public Task Deposit(int amount) =>
         _balance.PerformUpdate(
             balance => balance.Value += amount);
 
-    public Task Withdraw(uint amount) =>
+    public Task Withdraw(int amount) =>
         _balance.PerformUpdate(balance =>
         {
             if (balance.Value < amount)
@@ -36,6 +36,6 @@ public class AccountGrain : Grain, IAccountGrain
             balance.Value -= amount;
         });
 
-    public Task<uint> GetBalance() =>
+    public Task<int> GetBalance() =>
         _balance.PerformRead(balance => balance.Value);
 }

@@ -1,18 +1,10 @@
-using BlazorServer.Models;
-using Orleans;
+﻿using BlazorServer.Models;
 using System.Collections.Immutable;
 
 namespace BlazorServer.Services;
 
-public class WeatherForecastService
+public sealed class WeatherForecastService(IClusterClient client)
 {
-    private readonly IClusterClient _client;
-
-    public WeatherForecastService(IClusterClient client)
-    {
-        _client = client;
-    }
-
     public Task<ImmutableArray<WeatherInfo>> GetForecastAsync() =>
-        _client.GetGrain<IWeatherGrain>(Guid.Empty).GetForecastAsync();
+        client.GetGrain<IWeatherGrain>(Guid.Empty).GetForecastAsync();
 }

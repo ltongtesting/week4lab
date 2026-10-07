@@ -1,10 +1,12 @@
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
-using Orleans;
-using Orleans.Hosting;
-using System.Security.Cryptography.X509Certificates;
+﻿using HelloWorld;
 using HelloWorld.Grains;
 using HelloWorld.Interfaces;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
+
+// Ensure the self-signed certificate exists (creates one if missing)
+CertificateHelper.EnsureCertificateExists();
 
 await new HostBuilder()
     .UseEnvironment(Environments.Development)
@@ -14,26 +16,22 @@ await new HostBuilder()
         builder
             .UseLocalhostClustering()
             .UseTls(
-                StoreName.My,
-                "fakedomain.faketld",
+                CertificateHelper.StoreName,
+                CertificateHelper.CertificateSubject,
                 allowInvalid: isDevelopment,
-                StoreLocation.CurrentUser,
+                CertificateHelper.StoreLocation,
                 options =>
                 {
                     // In this sample there is only one silo, however if there are multiple silos then the TargetHost must be set
                     // for each connection which is initiated.
-                    options.OnAuthenticateAsClient = (connection, sslOptions) =>
-                    {
-                        sslOptions.TargetHost = "fakedomain.faketld";
-                    };
+                    options.OnAuthenticateAsClient = (connection, sslOptions) => sslOptions.TargetHost = CertificateHelper.CertificateSubject;
 
                     if (isDevelopment)
                     {
                         // NOTE: Do not do this in a production environment
                         options.AllowAnyRemoteCertificate();
                     }
-                })
-            .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(HelloGrain).Assembly).AddApplicationPart(typeof(IHelloGrain).Assembly));
+                });
     })
     .ConfigureLogging(logging => logging.AddConsole())
     .RunConsoleAsync();

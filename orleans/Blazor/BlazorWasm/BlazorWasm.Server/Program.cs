@@ -1,20 +1,18 @@
-using Microsoft.OpenApi.Models;
-using Orleans;
-using Orleans.Hosting;
-using BlazorWasm.Grains;
+using Microsoft.OpenApi;
 using Sample.Silo.Api;
+using Orleans.Providers;
+
+bool isDevelopment = false;
 
 await Host.CreateDefaultBuilder(args)
-    .UseOrleans(builder =>
+    .UseOrleans((ctx, builder) =>
     {
-        builder.ConfigureApplicationParts(manager =>
-        {
-            manager.AddApplicationPart(typeof(WeatherGrain).Assembly).WithReferences();
-        });
+        isDevelopment = ctx.HostingEnvironment.IsDevelopment();
+
         builder.UseLocalhostClustering();
         builder.AddMemoryGrainStorageAsDefault();
-        builder.AddSimpleMessageStreamProvider("SMS");
-        builder.AddMemoryGrainStorage("PubSubStore");
+        builder.AddMemoryStreams<DefaultMemoryMessageBodySerializer>("MemoryStreams");
+        builder.AddMemoryGrainStorage("PubSubStore");    
     })
     .ConfigureWebHostDefaults(webBuilder =>
     {
@@ -46,11 +44,15 @@ await Host.CreateDefaultBuilder(args)
             .Configure(app =>
             {
                 app.UseCors("ApiService");
-                app.UseSwagger();
-                app.UseSwaggerUI(options =>
+
+                if (isDevelopment)
                 {
-                    options.SwaggerEndpoint("/swagger/v1/swagger.json", nameof(Sample));
-                });
+                    app.UseSwagger();
+                    app.UseSwaggerUI(options =>
+                    {
+                        options.SwaggerEndpoint("/swagger/v1/swagger.json", nameof(Sample));
+                    });
+                }
 
                 app.UseRouting();
                 app.UseEndpoints(endpoints =>

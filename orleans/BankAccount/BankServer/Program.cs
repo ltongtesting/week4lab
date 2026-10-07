@@ -1,13 +1,8 @@
-using Microsoft.Extensions.Hosting;
-using Orleans;
-using Orleans.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 
-await Host.CreateDefaultBuilder()
-    .UseOrleans(siloBuilder =>
-    {
-        siloBuilder
+await Host.CreateDefaultBuilder(args)
+    .UseOrleans(siloBuilder => siloBuilder
             .UseLocalhostClustering()
             .AddMemoryGrainStorageAsDefault()
-            .UseTransactions();
-    })
+            .UseTransactions())
     .RunConsoleAsync();

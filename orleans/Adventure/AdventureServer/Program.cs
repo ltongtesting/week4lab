@@ -1,9 +1,7 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AdventureSetup;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Orleans;
-using Orleans.Hosting;
 
 var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 var mapFileName = Path.Combine(path, "AdventureMap.json");
@@ -27,11 +25,8 @@ if (!File.Exists(mapFileName))
 }
 
 // Configure the host
-using var host = Host.CreateDefaultBuilder()
-    .UseOrleans(siloBuilder =>
-    {
-        siloBuilder.UseLocalhostClustering();
-    })
+using var host = Host.CreateDefaultBuilder(args)
+    .UseOrleans(siloBuilder => siloBuilder.UseLocalhostClustering())
     .Build();
 
 // Start the host

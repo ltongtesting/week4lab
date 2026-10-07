@@ -1,11 +1,10 @@
-using Orleans.Concurrency;
+﻿namespace BlazorServer.Models;
 
-namespace BlazorServer.Models;
-
-[Immutable, Serializable]
+[Immutable]
+[GenerateSerializer]
 public record class TodoItem(
     Guid Key,
     string Title,
     bool IsDone,
     Guid OwnerKey,
-    DateTime? Timestamp = null);
+    DateTime Timestamp);
