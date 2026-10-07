@@ -28,8 +28,24 @@ jobs:
         shell: powershell
 
       - name: Execute Unit Tests
-        run: dotnet test .\unit-testing-using-dotnet-test.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test .\unit-testing-using-dotnet-test.sln --configuration Release --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=".\TestResults\coverage.opencover.xml"
         shell: powershell
+
+      - name: Persist Application Binary Package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: application-package
+          path: |
+            **/bin/Release/**/*.dll
+            **/bin/Release/**/*.exe
+          retention-days: 5
+
+      - name: Persist OpenCover Metrics XML Report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: opencover-report
+          path: .\TestResults\coverage.opencover.xml
+          retention-days: 5
 
   package-and-release:
     needs: build-and-test
